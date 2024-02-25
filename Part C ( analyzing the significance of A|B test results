@@ -1,0 +1,58 @@
+/* PROBLEM STATEMENT : Yammer conducted an A/B test for checking the users engagement after updating a part of the website . But the results came out too good to be true.
+                    That's why Yammer wants to analyse if the results are statistically significant or no */
+
+
+/* Hypothetical assumptions that can be the reason of this result 
+
+1.	The methodology followed to carry out different statistical tests maybe not suitable here .
+2.	The time period allotted for A/B testing experiment may not be sufficient form drawing any conclusion
+3.	The data was not checked for any bias , which may lead to faulty results
+4.	Possibility that the results are right and the treatment group really found the new updates user friendly
+5.	User distribution may not be done properly , or may contain any bias in groups allotments. Such experiments should be done on random basis 
+6.	All the non active users should be ignored in this process , if not done so then it may happen that one group gets more of non active members and otherwise */
+
+/*Tables used:
+1.	tutorial.yammer_users
+2.	tutorial.yammer_events
+3.	tutorial.yammer_experiments */
+
+
+-- 1) Users alloted per group (experiments dataset)
+
+select count( user_id ) as user_count_per_group , experiment_group from tutorial.yammer_experiments 
+where experiment_group= 'control_group' or experiment_group = 'test_group' group  by experiment_group
+
+-- Insights : here we can see that the users in control group are nearly double in count as compared to test group .
+--            It is an obvious bias in data which can be a reason for unrelaible results
+-- Solution : Yammer should do a proper distribution of users among groups to make sure the results are authentic
+
+-- 2) Allotment of users who don't have active status (users & experiments dataset)
+
+select users.user_id , users.state, expe.experiment_group from tutorial.yammer_users users
+left join tutorial.yammer_experiments expe on users.user_id = expe.user_id 
+where users.state = 'pending' and ( expe.experiment_group = 'control_group' or expe.experiment_group = 'test_group')
+
+-- Insights : This query doesn't give any output, which simply means that no pending user has been classified into any groups 
+-- Solution : There is no problem in this context
+
+-- 3) Suitable month for the experiment (events dataset)
+
+SELECT TO_CHAR(occurred_at, 'YYYY-MM') AS month_year, COUNT(*) AS count
+FROM tutorial.yammer_events GROUP BY month_year ORDER BY count DESC
+
+-- Insights : Here, we can see that the month of July has the highest events occurred as compared to June
+-- Solution : If the experiment was conducted in the month of July , there were more instances when an event occured
+--            and would have been resulted in better results as more data points reffers to better results
+--            If possible , Yammer should carry out the experiment for the month of July too and tally the results
+
+--4) Right statistical methodology 
+
+-- 1) A larger data set could have been used like for 2 - 3 months
+-- 2) There is no mention of data being checked for normality conditions , if those are not satisfied then 
+--   non parametric tests (eg : Wilcoxon Rank-Sum Test) should have been used over parametric test (t test)
+-- 3) If the data was normal , chi sq test would have been used for double checking the results , as chi sq test give better results
+
+/* According to the overall analysis of this A/B experiment , we conclude that the results don’t seem to give statistically significant and meaningful results .
+Yammer can try the experiment again by keeping in mind the suggested factors and not blindly trust the results . */
+
+
