@@ -1,0 +1,79 @@
+PROBLEM STATEMENT : Yammer wants to update it's search engine , but before that they want to know whether this time investment is worth it or not.
+
+
+/* Hypothetical situations that can show if the search engine is worth working on 
+1.	Saving time for searching the entire concept they wish to view
+2.	Guessing & Recommending not just the thing they are searching but other similar things too
+3.	How often the user choose from the recommended list
+4.	Does the search engine motivates the user to explore more stuff other than what he/she is searching
+5.	Are the recommendations arranged according to the most relevant stuff
+6.	Are the recommendations entirely based on user’s search history , or the search engine includes other than that too
+7.	After typing how many characters the user is getting the right recommendation
+8.	Is there a picture / audio search available to save more time 
+9.	If the user navigate through different recommendations then there is a possibility that the user is not getting the desired results in the top most recommendation
+10.	How likely is it that the user uses the advance search engine */
+
+/* Tables used :
+1.	tutorial.yammer_users
+2.	tutorial.yammer_events */
+
+-- 1) Is the recommendation system useful to max users (events dataset)
+
+select event_name , count(*) as count from tutorial.yammer_events where event_name ='search_autocomplete' 
+or event_name= 'search_run' group by event_name order by count desc
+
+-- Insights : Here count of search_autocomplete is significantly more as compared to search_run count
+--            This indicates that max users get what they are looking for in the recommendation list itself 
+-- Solution : Yammer can work better on the search engine to offer more relevent suggesions to it's users
+
+
+-- 2) Most relevent search appearance at which position (events dataset)
+
+select event_name , count(*) as count from tutorial.yammer_events where event_name ilike '%search_click%'
+group by event_name order by count desc
+
+-- Insights : This query gives the positions at which a most relevent recommendation occures 
+--            Here , recommendations occuring at positions are the highest clicked through ones , followed ny 1 , 4 ,3 ....
+-- Solution : It looks like yammers search is working good in this context. Yammer don't need to work more on it .
+
+
+-- 3) For which language preference does the system gives most of the relevent suggessions (users , events dataset)
+
+SELECT users.language, COUNT(*) AS count
+FROM tutorial.yammer_users users  LEFT JOIN  tutorial.yammer_events event ON users.user_id = event.user_id
+WHERE users.state = 'active' AND event.event_name = 'search_autocomplete'
+GROUP BY users.language ORDER BY count DESC
+
+-- Insights : This query shows that English is the preference language which gives the best recommendations to the users.
+--            It gives the count of search_autocomplete for each language preference opted by active users
+-- Solution : Yammer can work on giving better suggesions for other languages that have less count of relevent recommendation
+--            for eg Korean , Italian ....
+
+
+-- 4) According to device (users & events dataset)
+
+SELECT event.device, COUNT(*) AS count
+FROM tutorial.yammer_users users  RIGHT JOIN  tutorial.yammer_events event ON users.user_id = event.user_id
+WHERE users.state = 'active' AND event.event_name = 'search_autocomplete'
+GROUP BY event.device ORDER BY count DESC
+
+-- Insights : Here macbook pro has the highest count of active users who find the recommender system useful , followed by lonovo thinkpad ...
+--            This shows that users using these devices have better recommendations as compared to others.
+-- Solution : Yammer can find the root cause of this issue and can work to provide more relevently for other device users too ,
+--            and also the similar device users that will be a part of yammmer
+
+
+-- 5) According to Company_id (users & events dataset)
+
+SELECT users.company_id, COUNT(*) AS total_events , count(case when event.event_name ='search_autocomplete' then event.event_name end)as is_relevent,
+count(case when event.event_name ='search_run' then event.event_name end)as is_not_relevent
+FROM tutorial.yammer_users users  LEFT JOIN  tutorial.yammer_events event ON users.user_id = event.user_id
+WHERE users.state = 'active'  
+GROUP BY users.company_id ORDER BY total_events DESC
+
+-- Insights : This shows the companies according to the no.of events carried out by them on yammer in desc order 
+--            It also shows the count of how many the the search engine were useful to them & otherwise
+-- Solution : Yammer can work on and find the issues faced by those companies who find the recommendations less relatable  and end up typing the entire query they wish to view
+
+
+
