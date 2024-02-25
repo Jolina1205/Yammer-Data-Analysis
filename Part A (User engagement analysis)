@@ -1,0 +1,110 @@
+-- PROBLEM STATEMENT : What is the cause of drop in the user's engagement on the website
+
+/* Hypothetical assumptions that could be the possible cause in the drop of user engagement
+1)	User engagement   
+2)	Neglected users 
+3)	merging with other organization
+4)	dropdown in user’s satisfaction
+5)	Holiday 
+6)	Increase in churn rate
+7)	Less marketing efforts
+8)	Privacy or security issues faced by users
+9)	Platform accessibility ( eg not working on mobile )
+10)	High internet consumption problematic for certain geographical region */
+
+
+
+ASSIGNMENT 
+
+-- Tables used
+select * from tutorial.yammer_users
+select * from tutorial.yammer_events
+select * from tutorial.yammer_emails
+select * from benn.dimension_rollup_periods -- We didn't understood how this table (periods) is related
+
+
+-- 1) customer engagement  (emails dataset)
+
+
+select DISTINCT user_id , count(case when action = 'sent_weekly_digest' then 1 else null end) as sent_weekly_digest,
+count(case when action = 'email_open' then 1 else null end) as email_open ,
+count(case when action = 'email_clickthrough' then 1 else null end) as email_clickthrough,
+count(case when action = 'sent_email_reengagement' then 1 else null end) as sent_email_reengagement
+from tutorial.yammer_emails user_id group by user_id order by user_id
+
+-- Insights : Yammer is not sending any reengagement email to the users that are less frequent in engaging with the website
+-- solution : Yammer can send more reengaging emails so that it can increase it's potential user engagement
+
+--2) Neglected active users   (email, users dataset)
+
+select users.user_id ,users.state, case when email.action is null then 'Mail not send' end as new_action
+from tutorial.yammer_users users left join tutorial.yammer_emails email
+on  users.user_id = email.user_id and email.action = 'sent_weekly_digest' 
+where users.state = 'active' and email.action is null  group by 1,2, email.action order by 1
+
+-- Insights : These are the users that are active but no email is send to them 
+-- Solution : Yammer can send them emails like other active users and hence increase their engagement
+
+
+--3) Marketing according to language preference (users dataset)
+Select language, COUNT(*) AS count FROM tutorial.yammer_users GROUP BY language ORDER BY count DESC
+
+-- Insights : Maximum users prefer "English" language
+-- Solution : Yammer can prefer doing maximum of their marketing in English
+
+
+--4) Target companies (users dataset)
+
+select DISTINCT company_id , count(user_id)  from tutorial.yammer_users where state= 'active'
+group by company_id order by count desc limit 20
+
+-- Insights : This gives the top 10 companies according to maximum no. of users that are active
+-- Solution : Yammer should focus more on these companies having maximum active users 
+
+
+--5) Segmentation based on event_type (events dataset)
+
+select user_id, count (case when event_type ='engagement' then 1 else null end) as engagement , 
+count(case when event_type ='signup_flow' then 1 else null end) as sign_up
+from tutorial.yammer_events group by user_id order by user_id
+
+-- Insights : The users that have 'engagement' as their event type actually use the website for some purpose.
+--            The signup flow users just sign up and don't do any other significant task on the website
+-- Solution : Yammer can focus more on users who have more of egagement event_type than the signup flow type 
+
+
+--6) Time (UTC) showing maximum traffic (events dataset)
+
+SELECT EXTRACT(HOUR FROM utc_occurred_at) AS hour, COUNT(*) AS event_count FROM( SELECT user_id,event_type,event_name,location,device,user_type,
+CASE WHEN location = 'Indonesia' THEN occurred_at AT TIME ZONE 'UTC+7' WHEN location = 'Venezuela' THEN occurred_at AT TIME ZONE 'UTC-4'
+WHEN location = 'Korea' THEN occurred_at AT TIME ZONE 'UTC+9'          WHEN location = 'Sweden' THEN occurred_at AT TIME ZONE 'UTC+1'
+WHEN location = 'Ireland' THEN occurred_at AT TIME ZONE 'UTC'          WHEN location = 'Singapore' THEN occurred_at AT TIME ZONE 'UTC+8'
+WHEN location = 'Portugal' THEN occurred_at AT TIME ZONE 'UTC'         WHEN location = 'Finland' THEN occurred_at AT TIME ZONE 'UTC+2'
+WHEN location = 'Colombia' THEN occurred_at AT TIME ZONE 'UTC-5'       WHEN location = 'Saudi Arabia' THEN occurred_at AT TIME ZONE 'UTC+3'
+WHEN location = 'France' THEN occurred_at AT TIME ZONE 'UTC+1'         WHEN location = 'Israel' THEN occurred_at AT TIME ZONE 'UTC+2'
+WHEN location = 'Malaysia' THEN occurred_at AT TIME ZONE 'UTC+8'       WHEN location = 'Hong Kong' THEN occurred_at AT TIME ZONE 'UTC+8'
+WHEN location = 'Philippines' THEN occurred_at AT TIME ZONE 'UTC+8'    WHEN location = 'United States' THEN occurred_at AT TIME ZONE 'UTC-5'
+WHEN location = 'Turkey' THEN occurred_at AT TIME ZONE 'UTC+3'         WHEN location = 'Nigeria' THEN occurred_at AT TIME ZONE 'UTC+1'
+WHEN location = 'Netherlands' THEN occurred_at AT TIME ZONE 'UTC+1'    WHEN location = 'Australia' THEN occurred_at AT TIME ZONE 'UTC+10'
+WHEN location = 'Spain' THEN occurred_at AT TIME ZONE 'UTC'            WHEN location = 'United Arab Emirates' THEN occurred_at AT TIME ZONE 'UTC+4'  
+WHEN location = 'Belgium' THEN occurred_at AT TIME ZONE 'UTC+1'        WHEN location = 'Poland' THEN occurred_at AT TIME ZONE 'UTC+1'
+WHEN location = 'Taiwan' THEN occurred_at AT TIME ZONE 'UTC+8'         WHEN location = 'Thailand' THEN occurred_at AT TIME ZONE 'UTC+7'
+WHEN location = 'Italy' THEN occurred_at AT TIME ZONE 'UTC+1'          WHEN location = 'United Kingdom' THEN occurred_at AT TIME ZONE 'UTC'
+WHEN location = 'Germany' THEN occurred_at AT TIME ZONE 'UTC+1'        WHEN location = 'Canada' THEN occurred_at AT TIME ZONE 'UTC-5'
+WHEN location = 'Argentina' THEN occurred_at AT TIME ZONE 'UTC-3'      WHEN location = 'Egypt' THEN occurred_at AT TIME ZONE 'UTC+2'
+WHEN location = 'Greece' THEN occurred_at AT TIME ZONE 'UTC+2'         WHEN location = 'India' THEN occurred_at AT TIME ZONE 'UTC+5:30'
+WHEN location = 'Iran' THEN occurred_at AT TIME ZONE 'UTC+3:30'        WHEN location = 'Chile' THEN occurred_at AT TIME ZONE 'UTC-3'
+WHEN location = 'South Africa' THEN occurred_at AT TIME ZONE 'UTC+2'   WHEN location = 'Japan' THEN occurred_at AT TIME ZONE 'UTC+9'
+WHEN location = 'Denmark' THEN occurred_at AT TIME ZONE 'UTC+1'        WHEN location = 'Iraq' THEN occurred_at AT TIME ZONE 'UTC+3'
+WHEN location = 'Switzerland' THEN occurred_at AT TIME ZONE 'UTC+1'    WHEN location = 'Russia' THEN occurred_at AT TIME ZONE 'UTC+3'
+WHEN location = 'Norway' THEN occurred_at AT TIME ZONE 'UTC+1'         WHEN location = 'Pakistan' THEN occurred_at AT TIME ZONE 'UTC+5'
+WHEN location = 'Brazil' THEN occurred_at AT TIME ZONE 'UTC-3'         WHEN location = 'Austria' THEN occurred_at AT TIME ZONE 'UTC+1'
+WHEN location = 'Mexico' THEN occurred_at AT TIME ZONE 'UTC-6'         
+ELSE occurred_at END AS utc_occurred_at FROM tutorial.yammer_events) AS converted_times
+GROUP BY hour ORDER BY event_count DESC LIMIT 10
+
+-- Insights : 10 AM is the time when maximum events are carried out on the website throughout the globe 
+--            Top 10 Max traffic times are given here
+-- Solution : Yammer can make sure that during these times , the website doesn't encounter with any issue .
+
+
